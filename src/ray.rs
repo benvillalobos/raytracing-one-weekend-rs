@@ -1,9 +1,15 @@
 use cgmath::*;
 
-pub struct ray {
-    origin: Vector3;
-    dir: Vector3;
+pub struct Ray {
+    pub origin: Vector3<f64>,
+    pub dir: Vector3<f64>,
 }
-pub fn ray() -> ray{
 
+impl Ray {
+    pub fn new(orig: Vector3<f64>, direction: Vector3<f64>) -> Ray {
+        Self {
+            origin: orig,
+            dir: direction,
+        }
+    }
 }

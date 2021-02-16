@@ -1,5 +1,5 @@
 [package]
-name = "rt-one-week-rs"
+name = "raytracing"
 version = "0.1.0"
 authors = ["Ben Villalobos <4691428+BenVillalobos@users.noreply.github.com>"]
 edition = "2018"
