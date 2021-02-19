@@ -45,8 +45,12 @@ fn write_color(color: Vector3<f64>) {
 }
 
 fn ray_color(ray: Ray) -> Vector3<f64>{
-    if hit_sphere(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5, &ray) {
-        return Vector3::<f64>::new(1.0, 0.0, 0.0);
+    let t = hit_sphere(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5, &ray);
+
+    // hit
+    if t > 0.0 {
+        let n = ray.at(t) - Vector3::<f64>::new(0.0, 0.0, -1.0);
+        return 0.5*Vector3::<f64>::new(n.x+1.0, n.y+1.0, n.z+1.0);
     }
     // Normalize vector so we have y between -1 and 1.
     let unit_dir = ray.dir.normalize();
@@ -64,14 +68,18 @@ fn ray_color(ray: Ray) -> Vector3<f64>{
     return (1.0-t)*Vector3::new(1.0, 1.0, 1.0) + t*Vector3::new(0.5, 0.7, 1.0);
 }
 
-fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> bool {
+fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> f64 {
     let oc: Vector3<f64> = ray.origin - center;
 
     let a = ray.dir.dot(ray.dir);
     let b = 2.0 * oc.dot(ray.dir);
     let c = oc.dot(oc) - radius*radius;
     let discriminant = b*b - 4.0*a*c;
-    discriminant > 0.0
+    if discriminant < 0.0 {
+        -1.0
+    } else {
+        return (-b - discriminant).sqrt() / (2.0 * a);
+    }
 }
 
 fn output_ppm(width: i32, height: i32) {

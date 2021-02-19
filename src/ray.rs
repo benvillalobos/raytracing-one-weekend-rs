@@ -12,4 +12,8 @@ impl Ray {
             dir: direction,
         }
     }
+
+    pub fn at(self: &Self, t: f64) -> Vector3<f64> {
+        self.origin + t*self.dir
+    }
 }
