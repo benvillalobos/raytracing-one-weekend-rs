@@ -5,6 +5,7 @@
 use cgmath::*;
 use raytracing::ray::*;
 
+// cargo run > img.ppm
 fn main() {
     // Image
     let aspect_ratio = 16.0 / 9.0;
@@ -29,13 +30,48 @@ fn main() {
             let u: f64 = x as f64/(img_width-1) as f64;
             let v: f64 = y as f64/(img_height-1) as f64;
 
-            let r = Ray::new(origin, lower_left_corner+u*horizontal+v*vertical-origin);
+            // Remember that lower_left_corner is pushed out from origin.
+            let r = Ray::new(origin, lower_left_corner + u*horizontal + v*vertical);
             let pixel = ray_color(r);
 
             write_color(pixel);
         }
     }
     eprintln!("Done");
+}
+
+fn write_color(color: Vector3<f64>) {
+    println!("{} {} {}", (255.999 * color.x) as i32, (255.999 * color.y) as i32, (255.999 * color.z) as i32);
+}
+
+fn ray_color(ray: Ray) -> Vector3<f64>{
+    if hit_sphere(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5, &ray) {
+        return Vector3::<f64>::new(1.0, 0.0, 0.0);
+    }
+    // Normalize vector so we have y between -1 and 1.
+    let unit_dir = ray.dir.normalize();
+
+    // Add 1 to y so y's bounds are [0.0, 2.0]
+    // Multiply that by 0.5 so the bounds are [0.0, 1.0]
+    // Let t be the scale (from [0.0, 1.0]) of white or blue.
+    let t = 0.5 * (unit_dir.y + 1.0);
+
+    // When t is 1 (max height), the first segment
+    // of addition is (1.0 - 1.0)*white so no white is produced at top
+    // When t is 0 (min height), second segment becomes 
+    // 0*blue (no blue produced at bottom of image)
+    // In other words, linear interpolation.
+    return (1.0-t)*Vector3::new(1.0, 1.0, 1.0) + t*Vector3::new(0.5, 0.7, 1.0);
+}
+
+fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> bool {
+    let oc: Vector3<f64> = ray.origin - center;
+
+    let a = ray.dir.dot(ray.dir);
+    let b = 2.0 * oc.dot(ray.dir);
+    let c = oc.dot(oc) - radius*radius;
+    let discriminant = b*b - 4.0*a*c;
+    discriminant > 0.0
 }
 
 fn output_ppm(width: i32, height: i32) {
@@ -54,25 +90,4 @@ fn output_ppm(width: i32, height: i32) {
         }
     }
     eprintln!("Done");
-}
-
-fn write_color(color: Vector3<f64>) {
-    println!("{} {} {}", (255.999 * color.x) as i32, (255.999 * color.y) as i32, (255.999 * color.z) as i32);
-}
-
-fn ray_color(ray: Ray) -> Vector3<f64>{
-    // Normalize vector so we have y between -1 and 1.
-    let unit_dir = ray.dir.normalize();
-
-    // Add 1 to y so y's bounds are [0.0, 2.0]
-    // Multiply that by 0.5 so the bounds are [0.0, 1.0]
-    // Let t be the scale (from [0.0, 1.0]) of white or blue.
-    let t = 0.5 * (unit_dir.y + 1.0);
-
-    // When t is 1 (max height), the first segment
-    // of addition is (1.0 - 1.0)*white so no white is produced at top
-    // When t is 0 (min height), second segment becomes 
-    // 0*blue (no blue produced at bottom of image)
-    // In other words, linear interpolation.
-    return (1.0-t)*Vector3::new(1.0, 1.0, 1.0) + t*Vector3::new(0.5, 0.7, 1.0);
 }
