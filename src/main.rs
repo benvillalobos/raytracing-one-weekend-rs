@@ -193,10 +193,10 @@ fn create_window( name : &str, title : &str ) -> Result<Window, Error> {
 
 fn handle_message( window : &mut Window ) -> bool {
     unsafe {
-        let mut message : MSG = mem::uninitialized();
-        if GetMessageW( &mut message as *mut MSG, window.handle, 0, 0 ) > 0 {
-            TranslateMessage( &message as *const MSG );
-            DispatchMessageW( &message as *const MSG );
+        let message = mem::MaybeUninit::<MSG>::uninit();
+        if GetMessageW(message.as_ptr() as *mut MSG, window.handle, 0, 0 ) > 0 {
+            TranslateMessage(message.as_ptr() as *const MSG );
+            DispatchMessageW(message.as_ptr() as *const MSG );
 
             true
         } else {
