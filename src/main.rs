@@ -7,6 +7,7 @@ use raytracing::ray::*;
 
 // cargo run > img.ppm
 fn main() {
+    let arg: f64 = std::env::args().collect::<Vec<String>>().remove(1).parse().expect("Enter an i32!");
     // Image
     let aspect_ratio = 16.0 / 9.0;
     let img_width = 400;
@@ -17,11 +18,13 @@ fn main() {
     let viewport_width = aspect_ratio * viewport_height;
     let focal_length = 1.0;
 
-    let origin = Vector3::<f64>::new(0.0, 0.0, 0.0);
+    let mut origin = Vector3::<f64>::new(0.0, 0.0, 0.0);
     let horizontal = Vector3::<f64>::new(viewport_width, 0.0, 0.0);
     let vertical = Vector3::<f64>::new(0.0, viewport_height, 0.0);
     let lower_left_corner = origin - horizontal/2.0 - vertical/2.0 - Vector3::<f64>::new(0.0, 0.0, focal_length);
     
+    origin = Vector3::<f64>::new(0.0, 0.0, arg);
+
     println!("P3\n{} {}\n255", img_width, img_height);
 
     for y in (0..img_height).rev() {
