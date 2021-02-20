@@ -1,12 +1,53 @@
 // Following: https://raytracing.github.io/books/RayTracingInOneWeekend.html
+// https://drywa.me/2017/07/02/simple-win32-window-with-rust/
 //#![allow(unused_variables)]
 #![allow(dead_code)]
+#![windows_subsystem = "windows"]
+#![allow(deprecated)]
 
 use cgmath::*;
 use raytracing::ray::*;
+use raytracing::window::*;
 
+use std::ffi::OsStr;
+use std::os::windows::ffi::OsStrExt;
+use std::iter::once;
+use std::mem;
+use std::ptr::null_mut;
+use std::io::Error;
+
+use user32::{
+    DefWindowProcW,
+    RegisterClassW,
+    CreateWindowExW,
+    TranslateMessage,
+    DispatchMessageW,
+    GetMessageW,
+};
+
+use kernel32::GetModuleHandleW;
+
+use winapi::winuser::{
+    MSG,
+    WNDCLASSW,
+    CS_OWNDC,
+    CS_HREDRAW,
+    CS_VREDRAW,
+    CW_USEDEFAULT,
+    WS_OVERLAPPEDWINDOW,
+    WS_VISIBLE,
+};
 // cargo run > img.ppm
 fn main() {
+
+    let mut window = create_window("main", "Raytracing!").unwrap();
+
+    loop {
+        if !handle_message(&mut window) {
+            break;
+        }
+    }
+
     let arg: f64 = std::env::args().collect::<Vec<String>>().remove(1).parse().expect("Enter an i32!");
     // Image
     let aspect_ratio = 16.0 / 9.0;
@@ -101,4 +142,65 @@ fn output_ppm(width: i32, height: i32) {
         }
     }
     eprintln!("Done");
+}
+
+fn win32_string( value : &str ) -> Vec<u16> {
+    OsStr::new( value ).encode_wide().chain( once( 0 ) ).collect()
+}
+
+fn create_window( name : &str, title : &str ) -> Result<Window, Error> {
+    let name = win32_string( name );
+    let title = win32_string( title );
+
+    unsafe {
+        let hinstance = GetModuleHandleW( null_mut() );
+        let wnd_class = WNDCLASSW {
+            style : CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
+            lpfnWndProc : Some( DefWindowProcW ),
+            hInstance : hinstance,
+            lpszClassName : name.as_ptr(),
+            cbClsExtra : 0,
+            cbWndExtra : 0,
+            hIcon: null_mut(),
+            hCursor: null_mut(),
+            hbrBackground: null_mut(),
+            lpszMenuName: null_mut(),
+        };
+
+        RegisterClassW( &wnd_class );
+
+        let handle = CreateWindowExW(
+            0,
+            name.as_ptr(),
+            title.as_ptr(),
+            WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            null_mut(),
+            null_mut(),
+            hinstance,
+            null_mut() );
+
+        if handle.is_null() {
+            Err( Error::last_os_error() )
+        } else {
+            Ok( Window { handle } )
+        }
+    }
+}
+
+fn handle_message( window : &mut Window ) -> bool {
+    unsafe {
+        let mut message : MSG = mem::uninitialized();
+        if GetMessageW( &mut message as *mut MSG, window.handle, 0, 0 ) > 0 {
+            TranslateMessage( &message as *const MSG );
+            DispatchMessageW( &message as *const MSG );
+
+            true
+        } else {
+            false
+        }
+    }
 }
