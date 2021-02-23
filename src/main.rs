@@ -27,6 +27,8 @@ fn main() {
     let lower_left_corner = origin - horizontal/2.0 - vertical/2.0 - Vector3::<f64>::new(0.0, 0.0, focal_length);
     
     let sphere1: Sphere = Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5);
+    let world: Sphere = Sphere::new(Vector3::<f64>::new(0.0, -100.5, -1.0), 100.0);
+
 
     origin = Vector3::<f64>::new(0.0, 0.0, arg);
 
@@ -40,7 +42,7 @@ fn main() {
 
             // Remember that lower_left_corner is pushed out from origin.
             let r = Ray::new(origin, lower_left_corner + u*horizontal + v*vertical);
-            let pixel = ray_color(r, &sphere1);
+            let pixel = ray_color(r, &sphere1, &world);
 
             write_color(pixel);
         }
@@ -52,13 +54,15 @@ fn write_color(color: Vector3<f64>) {
     println!("{} {} {}", (255.999 * color.x) as i32, (255.999 * color.y) as i32, (255.999 * color.z) as i32);
 }
 
-fn ray_color(ray: Ray, sphere: &Sphere) -> Vector3<f64>{
+fn ray_color(ray: Ray, sphere: &Sphere, world: &Sphere) -> Vector3<f64>{
     let mut record: HitRecord = HitRecord::new();
 
-    let hit = sphere.hit(&ray, 0.0, 1.0, &mut record);
-
-    if hit {
+    if sphere.hit(&ray, 0.0, 1.0, &mut record) {
         return 0.5*Vector3::<f64>::new(record.normal.x+1.0, record.normal.y+1.0, record.normal.z+1.0);
+    }
+    
+    if world.hit(&ray, 0.0, f64::MAX, &mut record)  {
+        return Vector3::<f64>::new(0.0, 1.0, 0.0);
     }
 
     // Normalize vector so we have y between -1 and 1.
@@ -68,7 +72,7 @@ fn ray_color(ray: Ray, sphere: &Sphere) -> Vector3<f64>{
     // Multiply that by 0.5 so the bounds are [0.0, 1.0]
     // Let t be the scale (from [0.0, 1.0]) of white or blue.
     let t = 0.5 * (unit_dir.y + 1.0);
-    
+
     // When t is 1 (max height), the first segment
     // of addition is (1.0 - 1.0)*white so no white is produced at top
     // When t is 0 (min height), second segment becomes 
