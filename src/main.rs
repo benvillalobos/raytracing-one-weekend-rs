@@ -19,6 +19,7 @@ fn main() {
     let focal_length = 1.0;
 
     let mut origin = Vector3::<f64>::new(0.0, 0.0, 0.0);
+    
     let horizontal = Vector3::<f64>::new(viewport_width, 0.0, 0.0);
     let vertical = Vector3::<f64>::new(0.0, viewport_height, 0.0);
     let lower_left_corner = origin - horizontal/2.0 - vertical/2.0 - Vector3::<f64>::new(0.0, 0.0, focal_length);
@@ -53,6 +54,7 @@ fn ray_color(ray: Ray) -> Vector3<f64>{
     // hit
     if t > 0.0 {
         let n = ray.at(t) - Vector3::<f64>::new(0.0, 0.0, -1.0);
+        // bound it to [0, 1]
         return 0.5*Vector3::<f64>::new(n.x+1.0, n.y+1.0, n.z+1.0);
     }
     // Normalize vector so we have y between -1 and 1.
@@ -74,14 +76,14 @@ fn ray_color(ray: Ray) -> Vector3<f64>{
 fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> f64 {
     let oc: Vector3<f64> = ray.origin - center;
 
-    let a = ray.dir.dot(ray.dir);
-    let b = 2.0 * oc.dot(ray.dir);
-    let c = oc.dot(oc) - radius*radius;
-    let discriminant = b*b - 4.0*a*c;
+    let a = ray.origin.distance2(ray.dir);
+    let half_b = oc.dot(ray.dir);
+    let c = oc.magnitude2() - radius*radius;
+    let discriminant = half_b*half_b - a*c;
     if discriminant < 0.0 {
         -1.0
     } else {
-        return (-b - discriminant).sqrt() / (2.0 * a);
+        return (-half_b - discriminant.sqrt()) / a;
     }
 }
 
