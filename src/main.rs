@@ -7,9 +7,16 @@ use raytracing::ray::*;
 use raytracing::sphere::*;
 use raytracing::hittable::*;
 
+// Constants
+static PI: f64 = 3.1415926535897932385;
+static INFINITY: f64 = f64::MAX;
+
 // cargo run > img.ppm
 fn main() {
-    let arg: f64 = std::env::args().collect::<Vec<String>>().remove(1).parse().expect("Enter an i32!");
+    let arg: f64 = 0.0; //std::env::args().collect::<Vec<String>>().remove(1).parse().expect("Enter an i32!");
+    
+
+
     // Image
     let aspect_ratio = 16.0 / 9.0;
     let img_width = 400;
@@ -55,13 +62,12 @@ fn write_color(color: Vector3<f64>) {
 }
 
 fn ray_color(ray: Ray, sphere: &Sphere, world: &Sphere) -> Vector3<f64>{
-    let mut record: HitRecord = HitRecord::new();
 
-    if sphere.hit(&ray, 0.0, 1.0, &mut record) {
-        return 0.5*Vector3::<f64>::new(record.normal.x+1.0, record.normal.y+1.0, record.normal.z+1.0);
+    if let Some(hit) = sphere.hit(&ray, 0.0, 1.0) {
+        return 0.5*Vector3::<f64>::new(hit.normal.x+1.0, hit.normal.y+1.0, hit.normal.z+1.0);
     }
-    
-    if world.hit(&ray, 0.0, f64::MAX, &mut record)  {
+
+    if world.hit(&ray, 0.0, f64::MAX).is_some() {
         return Vector3::<f64>::new(0.0, 1.0, 0.0);
     }
 
@@ -95,20 +101,6 @@ fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> f64 {
     }
 }
 
-fn output_ppm(width: i32, height: i32) {
-    println!("P3\n{} {}\n255", width, height);
-
-    for y in (0..height).rev() {
-    eprintln!("Scalines remaining: {}", y);
-        for x in 0..width {
-            let r: f64 = x as f64/(width-1) as f64;
-            let g: f64 = y as f64/(height-1) as f64;
-            let b: f64 = 0.25;
-
-            let color: Vector3<f64> = Vector3::<f64>::new(r, g, b);
-
-            write_color(color);
-        }
-    }
-    eprintln!("Done");
+fn deg_to_rad(degrees: f64) -> f64 {
+    degrees * PI / 180.0
 }
