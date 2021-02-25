@@ -11,9 +11,9 @@ impl HittableList {
             objects: Vec::<Box<dyn Hittable>>::new()
         }
     }
-    
-    pub fn add(self: &mut Self, object: Box<dyn Hittable>) {
-        self.objects.push(object);
+    //                                                    ???
+    pub fn push(self: &mut Self, object: impl Hittable + 'static) {
+        self.objects.push(Box::new(object));
     }
 }
 
