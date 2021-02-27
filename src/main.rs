@@ -26,7 +26,7 @@ fn main() {
     // Constants
     let camera = Camera::new();
 
-    let samples_per_pixel = 1.0;
+    let samples_per_pixel = 100;
     
     let mut objects = HittableList::new();
     objects.push(Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5));
@@ -37,15 +37,19 @@ fn main() {
     for y in (0..img_height).rev() {
     eprintln!("Scalines remaining: {}", y);
         for x in 0..img_width {
-            let u: f64 = x as f64/(img_width-1) as f64;
-            let v: f64 = y as f64/(img_height-1) as f64;
+            let mut sampled_pixel = Vector3::<f64>::new(0.0, 0.0, 0.0);
+            // Antialiasing: The edges of a pixel should be the "average" of colors around it.
+            for _ in 0..samples_per_pixel {
+                let u: f64 = (x  as f64 + rng.gen_range(0.0, 1.0))/(img_width-1) as f64;
+                let v: f64 = (y  as f64 + rng.gen_range(0.0, 1.0))/(img_height-1) as f64;
+    
+                // Remember that lower_left_corner is pushed out from origin.
+                let r = camera.get_ray(u, v);
+    
+                sampled_pixel += ray_color(r, &objects);
+            }
 
-            // Remember that lower_left_corner is pushed out from origin.
-            let r = camera.get_ray(u, v);
-
-            let pixel = ray_color(r, &objects);
-
-            write_color(pixel, samples_per_pixel);
+            write_color(sampled_pixel, samples_per_pixel as f64);
         }
     }
     eprintln!("Done");
