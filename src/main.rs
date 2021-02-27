@@ -2,35 +2,31 @@
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
+use raytracing::camera::Camera;
 use cgmath::*;
 use raytracing::ray::*;
 use raytracing::sphere::*;
 use raytracing::hittable_list::*;
+use rand::*;
 
 static PI: f64 = 3.1415926535897932385;
 static INFINITY: f64 = f64::MAX;
 
+
 // cargo run > img.ppm
 fn main() {
-    let arg: f64 = 0.0; //std::env::args().collect::<Vec<String>>().remove(1).parse().expect("Enter an i32!");
+    // Tools
+    let mut rng = thread_rng();
 
     // Image
     let aspect_ratio = 16.0 / 9.0;
     let img_width = 400;
     let img_height = (img_width as f64/aspect_ratio) as i32;
 
-    // Camera
-    let viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
-
     // Constants
-    let mut origin = Vector3::<f64>::new(0.0, 0.0, 0.0);
-    // Allow "camera movement" between runs
-    origin = Vector3::<f64>::new(0.0, 0.0, arg);
-    let horizontal = Vector3::<f64>::new(viewport_width, 0.0, 0.0);
-    let vertical = Vector3::<f64>::new(0.0, viewport_height, 0.0);
-    let lower_left_corner = origin - horizontal/2.0 - vertical/2.0 - Vector3::<f64>::new(0.0, 0.0, focal_length);
+    let camera = Camera::new();
+
+    let samples_per_pixel = 1.0;
     
     let mut objects = HittableList::new();
     objects.push(Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5));
@@ -45,17 +41,28 @@ fn main() {
             let v: f64 = y as f64/(img_height-1) as f64;
 
             // Remember that lower_left_corner is pushed out from origin.
-            let r = Ray::new(origin, lower_left_corner + u*horizontal + v*vertical);
+            let r = camera.get_ray(u, v);
+
             let pixel = ray_color(r, &objects);
 
-            write_color(pixel);
+            write_color(pixel, samples_per_pixel);
         }
     }
     eprintln!("Done");
 }
 
-fn write_color(color: Vector3<f64>) {
-    println!("{} {} {}", (255.999 * color.x) as i32, (255.999 * color.y) as i32, (255.999 * color.z) as i32);
+fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
+    let mut r = color.x;
+    let mut g = color.y;
+    let mut b = color.z;
+
+    // Divide color by number of samples
+    let scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
 }
 
 fn ray_color(ray: Ray, drawables: &HittableList) -> Vector3<f64>{
@@ -100,4 +107,8 @@ fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> f64 {
 
 fn deg_to_rad(degrees: f64) -> f64 {
     degrees * PI / 180.0
+}
+
+fn clamp(x: f64, min: f64, max: f64) -> f64 {
+    return if x < min { min } else if x > max { max } else { x }
 }
