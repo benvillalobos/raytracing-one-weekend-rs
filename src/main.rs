@@ -106,20 +106,6 @@ fn get_background_color(ray: &Ray) -> Vector3<f64> {
         (1.0-t)*Vector3::new(1.0, 1.0, 1.0) + t*Vector3::new(0.5, 0.7, 1.0)
 }
 
-fn hit_sphere(center: Vector3<f64>, radius: f64, ray: &Ray) -> f64 {
-    let oc: Vector3<f64> = ray.origin - center;
-
-    let a = ray.origin.distance2(ray.dir);
-    let half_b = oc.dot(ray.dir);
-    let c = oc.magnitude2() - radius*radius;
-    let discriminant = half_b*half_b - a*c;
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        return (-half_b - discriminant.sqrt()) / a;
-    }
-}
-
 fn deg_to_rad(degrees: f64) -> f64 {
     degrees * PI / 180.0
 }
