@@ -2,6 +2,7 @@
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
+use crate::rngs::ThreadRng;
 use raytracing::camera::Camera;
 use cgmath::*;
 use raytracing::ray::*;
@@ -25,8 +26,8 @@ fn main() {
 
     // Constants
     let camera = Camera::new();
-
     let samples_per_pixel = 100;
+    let max_depth = 50;
     
     let mut objects = HittableList::new();
     objects.push(Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5));
@@ -35,7 +36,7 @@ fn main() {
     println!("P3\n{} {}\n255", img_width, img_height);
 
     for y in (0..img_height).rev() {
-    eprintln!("Scalines remaining: {}", y);
+    eprintln!("Scanlines remaining: {}", y);
         for x in 0..img_width {
             let mut sampled_pixel = Vector3::<f64>::new(0.0, 0.0, 0.0);
             // Antialiasing: The edges of a pixel should be the "average" of colors around it.
@@ -46,7 +47,7 @@ fn main() {
                 // Remember that lower_left_corner is pushed out from origin.
                 let r = camera.get_ray(u, v);
     
-                sampled_pixel += ray_color(r, &objects);
+                sampled_pixel += ray_color(r, &objects, &mut rng, max_depth);
             }
 
             write_color(sampled_pixel, samples_per_pixel as f64);
@@ -69,10 +70,20 @@ fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
     println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
 }
 
-fn ray_color(ray: Ray, drawables: &HittableList) -> Vector3<f64>{
+fn ray_color(ray: Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32) -> Vector3<f64>{
+
+    // Don't let the stack overflow
+    if depth <= 0 {
+        return Vector3::<f64>::new(0.0, 0.0, 0.0);
+    }
+
     for sprite in &drawables.objects {
         if let Some(hit) = sprite.hit(&ray, 0.0, INFINITY) {
-            return 0.5*Vector3::<f64>::new(hit.normal.x+1.0, hit.normal.y+1.0, hit.normal.z+1.0);
+            let target = hit.point + hit.normal + random_in_unit_sphere(rng);
+
+            // Generate a color using a reflection in a random direction from where the
+            // object was hit.
+            return 0.5 * ray_color(Ray::new(hit.point, target - hit.point), drawables, rng, depth-1);
         }
     }
     get_background_color(&ray)
@@ -115,4 +126,16 @@ fn deg_to_rad(degrees: f64) -> f64 {
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     return if x < min { min } else if x > max { max } else { x }
+}
+
+fn random_vec3(rng: &mut ThreadRng, min: f64, max: f64) -> Vector3<f64> {
+    Vector3::<f64>::new(rng.gen_range(min, max), rng.gen_range(min, max), rng.gen_range(min, max))
+}
+
+fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vector3<f64> {
+    loop {
+        let p = random_vec3(rng, -1.0, 1.0);
+        if p.magnitude2() >= 1.0 {continue;}
+        return p;
+    }
 }
