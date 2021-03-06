@@ -1,17 +1,20 @@
+use crate::material::Material;
 use crate::hittable::*;
 use cgmath::*;
 use crate::ray::Ray;
 
 pub struct Sphere {
     center: Vector3::<f64>,
-    radius: f64
+    radius: f64,
+    material: Material,
 }
 
 impl Sphere {
-    pub fn new(center: Vector3::<f64>, radius: f64) -> Sphere{
+    pub fn new(center: Vector3::<f64>, radius: f64, material: Material) -> Sphere{
         Self {
             center: center,
             radius: radius,
+            material: material,
         }
     }
 }
@@ -45,7 +48,7 @@ fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
             // to get a unit vector.
             let outward_normal = (point - self.center) / self.radius;
 
-            let mut hit: HitRecord = HitRecord { point: point, normal: outward_normal, t: root, front_face: false };
+            let mut hit: HitRecord = HitRecord { point: point, normal: outward_normal, t: root, front_face: false, material: self.material.clone() };
             hit.set_face_normal(ray, outward_normal);
 
             Some(hit)

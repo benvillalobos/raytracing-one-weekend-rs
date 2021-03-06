@@ -2,12 +2,14 @@
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
+use raytracing::hittable::HitRecord;
 use crate::rngs::ThreadRng;
 use raytracing::camera::Camera;
 use cgmath::*;
 use raytracing::ray::*;
 use raytracing::sphere::*;
 use raytracing::hittable_list::*;
+use raytracing::material::*;
 use rand::*;
 
 static PI: f64 = 3.1415926535897932385;
@@ -30,8 +32,8 @@ fn main() {
     let max_depth = 50;
     
     let mut objects = HittableList::new();
-    objects.push(Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5));
-    objects.push(Sphere::new(Vector3::<f64>::new(0.0, -100.5, -1.0), 100.0));
+    objects.push(Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5, Material::Lambertian));
+    objects.push(Sphere::new(Vector3::<f64>::new(0.0, -100.5, -1.0), 100.0, Material::Lambertian));
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -78,12 +80,9 @@ fn ray_color(ray: Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32
     }
 
     for sprite in &drawables.objects {
-        if let Some(hit) = sprite.hit(&ray, 0.0, INFINITY) {
-            let target = hit.point + hit.normal + random_in_unit_sphere(rng);
-
-            // Generate a color using a reflection in a random direction from where the
-            // object was hit.
-            return 0.5 * ray_color(Ray::new(hit.point, target - hit.point), drawables, rng, depth-1);
+        // 0.001 so we avoid calculating colors when objects are too close.
+        if let Some(hit) = sprite.hit(&ray, 0.001, INFINITY) {
+            return 0.5 * ray_color(scatter(ray, hit, rng), drawables, rng, depth-1);
         }
     }
     get_background_color(&ray)
@@ -118,10 +117,56 @@ fn random_vec3(rng: &mut ThreadRng, min: f64, max: f64) -> Vector3<f64> {
     Vector3::<f64>::new(rng.gen_range(min, max), rng.gen_range(min, max), rng.gen_range(min, max))
 }
 
+fn random_unit_vector(rng: &mut ThreadRng) -> Vector3<f64> {
+    random_in_unit_sphere(rng).normalize()
+}
+
+fn random_in_hemisphere(normal: Vector3<f64>, rng: &mut ThreadRng) -> Vector3<f64> {
+    let in_unit_sphere = random_in_unit_sphere(rng);
+    // In the same hemisphere as the normal?
+    if in_unit_sphere.dot(normal) > 0.0 {
+        in_unit_sphere
+    } else {
+        -in_unit_sphere
+    }
+}
+
 fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vector3<f64> {
     loop {
         let p = random_vec3(rng, -1.0, 1.0);
         if p.magnitude2() >= 1.0 {continue;}
         return p;
+    }
+}
+
+fn near_zero(vec: Vector3<f64>) -> bool {
+    let s = 1e-8;
+    return vec.x < s && vec.y < s && vec.z < s;
+}
+
+fn scatter(ray: Ray, hit: HitRecord, rng: &mut ThreadRng) -> Ray{
+    match hit.material {
+        Material::Lambertian => {
+            let mut scatter_direction = hit.normal + random_unit_vector(rng);
+
+            if near_zero(scatter_direction) {
+                scatter_direction = hit.normal;
+            }
+
+            Ray::new(hit.point, scatter_direction)
+        }
+        Material::Hemispherical => {
+            let target = hit.point + random_in_hemisphere(hit.normal, rng);
+
+            // Generate a color using a reflection in a random direction from where the
+            // object was hit.
+            Ray::new(hit.point, target - hit.point)
+            
+        }
+        Material::Metal => {
+            ray
+        }
+        _ => { Ray::new(Vector3::<f64>::new(0.0, 0.0, 0.0), Vector3::<f64>::new(0.0, 0.0, 0.0))
+        }
     }
 }

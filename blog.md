@@ -11,4 +11,6 @@ It came out very dark, the solution here was to sqrt the color that resulted fro
 
 Reducing the sample count from 100 to 50 and the scanline count from 50 to 25 reduced render time in half (as expected). Came out VERY grainy.
 
-Something is off.
+Something is off. Nevermind it's good but it took forever!
+
+### 3/5 Shadow Acne

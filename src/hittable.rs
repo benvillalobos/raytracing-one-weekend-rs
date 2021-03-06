@@ -1,9 +1,11 @@
+use crate::material::*;
 use cgmath::*;
 use crate::ray::Ray;
 
 pub trait Hittable {
     // Rust doesn't like using "out parameters", don't pass the Hittable as a param.
     fn hit(self: &Self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    
 }
 
 pub struct HitRecord {
@@ -11,6 +13,7 @@ pub struct HitRecord {
     pub normal: Vector3::<f64>,
     pub t: f64,
     pub front_face: bool,
+    pub material: Material,
 }
 
 impl HitRecord {
@@ -20,6 +23,7 @@ impl HitRecord {
             normal: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             t: 0.0,
             front_face: false,
+            material: Material::Lambertian
         }
     }
 
