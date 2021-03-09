@@ -163,10 +163,6 @@ fn scatter(ray: Ray, hit: HitRecord, rng: &mut ThreadRng) -> Ray{
             Ray::new(hit.point, target - hit.point)
             
         }
-        Material::Metal => {
-            ray
-        }
-        _ => { Ray::new(Vector3::<f64>::new(0.0, 0.0, 0.0), Vector3::<f64>::new(0.0, 0.0, 0.0))
-        }
+        Material::Metal => { ray }
     }
 }
