@@ -23,6 +23,7 @@ impl Camera {
             // height of the screen
             vertical: Vector3::<f64>::new(0.0, viewport_height, 0.0),
             // lower left corner of the viewport.
+            // Remember that lower_left_corner is pushed out from origin.
             lower_left_corner: Vector3::<f64>::new(0.0, 0.0, 0.0) - Vector3::<f64>::new(viewport_width, 0.0, 0.0)/2.0 - Vector3::<f64>::new(0.0, viewport_height, 0.0)/2.0 - Vector3::<f64>::new(0.0, 0.0, focal_length),
         }
     }

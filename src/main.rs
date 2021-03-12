@@ -32,8 +32,11 @@ fn main() {
     let max_depth = 50;
     
     let mut objects = HittableList::new();
-    objects.push(Sphere::new(Vector3::<f64>::new(0.0, 0.0, -1.0), 0.5, Material::Lambertian));
-    objects.push(Sphere::new(Vector3::<f64>::new(0.0, -100.5, -1.0), 100.0, Material::Lambertian));
+
+    objects.push(Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Material::Lambertian, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, 0.0));
+    objects.push(Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Material::Metal, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3));
+    objects.push(Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Material::Metal, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0));
+    objects.push(Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Material::Lambertian, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, 0.0));
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -46,7 +49,6 @@ fn main() {
                 let u: f64 = (x  as f64 + rng.gen_range(0.0, 1.0))/(img_width-1) as f64;
                 let v: f64 = (y  as f64 + rng.gen_range(0.0, 1.0))/(img_height-1) as f64;
     
-                // Remember that lower_left_corner is pushed out from origin.
                 let r = camera.get_ray(u, v);
     
                 sampled_pixel += ray_color(r, &objects, &mut rng, max_depth);
@@ -82,7 +84,8 @@ fn ray_color(ray: Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32
     for sprite in &drawables.objects {
         // 0.001 so we avoid calculating colors when objects are too close.
         if let Some(hit) = sprite.hit(&ray, 0.001, INFINITY) {
-            return 0.5 * ray_color(scatter(ray, hit, rng), drawables, rng, depth-1);
+            let col = ray_color(scatter(ray, &hit, rng), drawables, rng, depth-1);
+            return Vector3 {x: col.x * hit.color.clone().x, y: col.y * hit.color.clone().y, z: col.z * hit.color.clone().z };
         }
     }
     get_background_color(&ray)
@@ -144,7 +147,11 @@ fn near_zero(vec: Vector3<f64>) -> bool {
     return vec.x < s && vec.y < s && vec.z < s;
 }
 
-fn scatter(ray: Ray, hit: HitRecord, rng: &mut ThreadRng) -> Ray{
+fn reflect(v: Vector3<f64>, n: Vector3<f64>) -> Vector3<f64> {
+    v - 2.0 * v.dot(n)*n
+}
+
+fn scatter(ray: Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
     match hit.material {
         Material::Lambertian => {
             let mut scatter_direction = hit.normal + random_unit_vector(rng);
@@ -163,6 +170,9 @@ fn scatter(ray: Ray, hit: HitRecord, rng: &mut ThreadRng) -> Ray{
             Ray::new(hit.point, target - hit.point)
             
         }
-        Material::Metal => { ray }
+        Material::Metal => { 
+            let reflected = reflect(ray.dir, hit.normal);
+            Ray::new(hit.point, reflected + hit.fuzz*random_in_unit_sphere(rng))
+        }
     }
 }

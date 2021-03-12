@@ -7,14 +7,18 @@ pub struct Sphere {
     center: Vector3::<f64>,
     radius: f64,
     material: Material,
+    color: Vector3::<f64>,
+    fuzz: f64,
 }
 
 impl Sphere {
-    pub fn new(center: Vector3::<f64>, radius: f64, material: Material) -> Sphere{
+    pub fn new(center: Vector3::<f64>, radius: f64, material: Material, color: Vector3<f64>, fuzz: f64) -> Sphere{
         Self {
             center: center,
             radius: radius,
             material: material,
+            color: color,
+            fuzz: fuzz,
         }
     }
 }
@@ -48,7 +52,7 @@ fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
             // to get a unit vector.
             let outward_normal = (point - self.center) / self.radius;
 
-            let mut hit: HitRecord = HitRecord { point: point, normal: outward_normal, t: root, front_face: false, material: self.material.clone() };
+            let mut hit: HitRecord = HitRecord { point: point, normal: outward_normal, t: root, front_face: false, material: self.material.clone(), color: self.color, fuzz: self.fuzz };
             hit.set_face_normal(ray, outward_normal);
 
             Some(hit)
