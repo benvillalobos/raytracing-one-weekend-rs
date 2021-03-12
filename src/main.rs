@@ -184,12 +184,26 @@ fn scatter(ray: Ray, hit: &mut HitRecord, rng: &mut ThreadRng) -> Ray {
         },
         Material::Dielectric => {
             hit.color = Vector3 {x: 1.0, y: 1.0, z: 1.0 };
+            
+            
             let refraction_ratio = if hit.front_face {1.0/hit.ir} else {hit.ir};
-
             let unit_direction = ray.dir.normalize();
-            let refracted = refract(unit_direction, hit.normal, refraction_ratio);
 
-            Ray::new(hit.point, refracted)
+            let cos_theta = clamp((-unit_direction).dot(hit.normal), 1.0, INFINITY);
+            let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+
+            let cannot_refract = refraction_ratio * sin_theta > 1.0;
+            let direction: Vector3<f64>;
+
+            if cannot_refract {
+                direction = reflect(unit_direction, hit.normal);
+            }
+            else {
+                direction = refract(unit_direction, hit.normal, hit.ir);
+            }
+
+
+            Ray::new(hit.point, direction)
         }
     }
 }
