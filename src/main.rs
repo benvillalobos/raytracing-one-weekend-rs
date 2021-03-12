@@ -33,10 +33,10 @@ fn main() {
     
     let mut objects = HittableList::new();
 
-    objects.push(Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Material::Lambertian, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, 0.0));
-    objects.push(Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Material::Metal, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3));
-    objects.push(Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Material::Metal, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0));
-    objects.push(Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Material::Lambertian, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, 0.0));
+    objects.push(Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Material::Dielectric, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, 0.0, 1.5));
+    objects.push(Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Material::Dielectric, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3, 1.5));
+    objects.push(Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Material::Metal, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0, 0.0));
+    objects.push(Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Material::Lambertian, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, 0.0, 0.0));
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -83,8 +83,8 @@ fn ray_color(ray: Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32
 
     for sprite in &drawables.objects {
         // 0.001 so we avoid calculating colors when objects are too close.
-        if let Some(hit) = sprite.hit(&ray, 0.001, INFINITY) {
-            let col = ray_color(scatter(ray, &hit, rng), drawables, rng, depth-1);
+        if let Some(hit) = &mut sprite.hit(&ray, 0.001, INFINITY) {
+            let col = ray_color(scatter(ray, hit, rng), drawables, rng, depth-1);
             return Vector3 {x: col.x * hit.color.clone().x, y: col.y * hit.color.clone().y, z: col.z * hit.color.clone().z };
         }
     }
@@ -151,7 +151,15 @@ fn reflect(v: Vector3<f64>, n: Vector3<f64>) -> Vector3<f64> {
     v - 2.0 * v.dot(n)*n
 }
 
-fn scatter(ray: Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
+fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f64> {
+    let cos_theta = clamp((-uv).dot(n), 1.0, INFINITY);
+
+    let r_out_perp = etai_over_etat * (uv + cos_theta*n);
+    let r_out_parallel = -((1.0 - r_out_perp.magnitude2()).abs().sqrt()) * n;
+    r_out_perp + r_out_parallel
+}
+
+fn scatter(ray: Ray, hit: &mut HitRecord, rng: &mut ThreadRng) -> Ray {
     match hit.material {
         Material::Lambertian => {
             let mut scatter_direction = hit.normal + random_unit_vector(rng);
@@ -173,6 +181,15 @@ fn scatter(ray: Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
         Material::Metal => { 
             let reflected = reflect(ray.dir, hit.normal);
             Ray::new(hit.point, reflected + hit.fuzz*random_in_unit_sphere(rng))
+        },
+        Material::Dielectric => {
+            hit.color = Vector3 {x: 1.0, y: 1.0, z: 1.0 };
+            let refraction_ratio = if hit.front_face {1.0/hit.ir} else {hit.ir};
+
+            let unit_direction = ray.dir.normalize();
+            let refracted = refract(unit_direction, hit.normal, refraction_ratio);
+
+            Ray::new(hit.point, refracted)
         }
     }
 }

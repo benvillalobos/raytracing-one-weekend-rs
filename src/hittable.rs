@@ -15,7 +15,8 @@ pub struct HitRecord {
     pub front_face: bool,
     pub material: Material,
     pub color: Vector3::<f64>,
-    pub fuzz: f64
+    pub fuzz: f64,
+    pub ir: f64
 }
 
 impl HitRecord {
@@ -28,6 +29,7 @@ impl HitRecord {
             material: Material::Lambertian,
             color: Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             fuzz: 0.0,
+            ir: 0.0
         }
     }
 

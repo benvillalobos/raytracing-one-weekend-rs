@@ -3,4 +3,5 @@ pub enum Material {
     Lambertian,
     Hemispherical,
     Metal,
+    Dielectric,
 }
