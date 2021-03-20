@@ -12,14 +12,13 @@ impl HittableList {
         }
     }
     //                                                    ???
-    pub fn push(self: &mut Self, object: impl Hittable + 'static) {
+    pub fn push(&mut self, object: impl Hittable + 'static) {
         self.objects.push(Box::new(object));
     }
 }
 
 impl Hittable for HittableList {
-    
-    fn hit(self: &Self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit_anything: Option<HitRecord> = None;
         let mut closest_so_far: f64 = t_max;
 

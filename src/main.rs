@@ -2,7 +2,7 @@
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
-use raytracing::hittable::HitRecord;
+use raytracing::hittable::Hittable;
 use crate::rngs::ThreadRng;
 use raytracing::camera::Camera;
 use cgmath::*;
@@ -33,10 +33,10 @@ fn main() {
     
     let mut objects = HittableList::new();
 
-    objects.push(Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Material::Dielectric, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, 0.0, 1.5));
-    objects.push(Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Material::Dielectric, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3, 1.5));
-    objects.push(Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Material::Metal, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0, 0.0));
-    objects.push(Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Material::Lambertian, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, 0.0, 0.0));
+    objects.push(Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
+    objects.push(Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
+    objects.push(Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
+    objects.push(Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -51,7 +51,7 @@ fn main() {
     
                 let r = camera.get_ray(u, v);
     
-                sampled_pixel += ray_color(r, &objects, &mut rng, max_depth);
+                sampled_pixel += ray_color(&r, &objects, &mut rng, max_depth);
             }
 
             write_color(sampled_pixel, samples_per_pixel as f64);
@@ -74,19 +74,17 @@ fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
     println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
 }
 
-fn ray_color(ray: Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32) -> Vector3<f64>{
+fn ray_color(ray: &Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32) -> Vector3<f64>{
 
     // Don't let the stack overflow
     if depth <= 0 {
         return Vector3::<f64>::new(0.0, 0.0, 0.0);
     }
 
-    for sprite in &drawables.objects {
-        // 0.001 so we avoid calculating colors when objects are too close.
-        if let Some(hit) = &mut sprite.hit(&ray, 0.001, INFINITY) {
-            let col = ray_color(scatter(ray, hit, rng), drawables, rng, depth-1);
-            return Vector3 {x: col.x * hit.color.clone().x, y: col.y * hit.color.clone().y, z: col.z * hit.color.clone().z };
-        }
+    if let Some(hit) = drawables.hit(ray, 0.001, INFINITY) {
+        let r = hit.material.scatter(&ray, &hit, rng);
+        let col = ray_color(&r, &drawables, rng, depth-1);
+        return Vector3 {x: col.x * hit.color.clone().x, y: col.y * hit.color.clone().y, z: col.z * hit.color.clone().z };
     }
     get_background_color(&ray)
 }
@@ -157,53 +155,4 @@ fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f6
     let r_out_perp = etai_over_etat * (uv + cos_theta*n);
     let r_out_parallel = -((1.0 - r_out_perp.magnitude2()).abs().sqrt()) * n;
     r_out_perp + r_out_parallel
-}
-
-fn scatter(ray: Ray, hit: &mut HitRecord, rng: &mut ThreadRng) -> Ray {
-    match hit.material {
-        Material::Lambertian => {
-            let mut scatter_direction = hit.normal + random_unit_vector(rng);
-
-            if near_zero(scatter_direction) {
-                scatter_direction = hit.normal;
-            }
-
-            Ray::new(hit.point, scatter_direction)
-        }
-        Material::Hemispherical => {
-            let target = hit.point + random_in_hemisphere(hit.normal, rng);
-
-            // Generate a color using a reflection in a random direction from where the
-            // object was hit.
-            Ray::new(hit.point, target - hit.point)
-            
-        }
-        Material::Metal => { 
-            let reflected = reflect(ray.dir, hit.normal);
-            Ray::new(hit.point, reflected + hit.fuzz*random_in_unit_sphere(rng))
-        },
-        Material::Dielectric => {
-            hit.color = Vector3 {x: 1.0, y: 1.0, z: 1.0 };
-            
-            
-            let refraction_ratio = if hit.front_face {1.0/hit.ir} else {hit.ir};
-            let unit_direction = ray.dir.normalize();
-
-            let cos_theta = clamp((-unit_direction).dot(hit.normal), 1.0, INFINITY);
-            let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
-
-            let cannot_refract = refraction_ratio * sin_theta > 1.0;
-            let direction: Vector3<f64>;
-
-            if cannot_refract {
-                direction = reflect(unit_direction, hit.normal);
-            }
-            else {
-                direction = refract(unit_direction, hit.normal, hit.ir);
-            }
-
-
-            Ray::new(hit.point, direction)
-        }
-    }
 }

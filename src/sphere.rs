@@ -3,29 +3,25 @@ use crate::hittable::*;
 use cgmath::*;
 use crate::ray::Ray;
 
-pub struct Sphere {
+pub struct Sphere<M: Material> {
     center: Vector3::<f64>,
     radius: f64,
-    material: Material,
     color: Vector3::<f64>,
-    fuzz: f64,
-    ir: f64
+    material: M,
 }
 
-impl Sphere {
-    pub fn new(center: Vector3::<f64>, radius: f64, material: Material, color: Vector3<f64>, fuzz: f64, ir: f64) -> Sphere{
+impl <M: Material> Sphere<M> {
+    pub fn new(center: Vector3::<f64>, radius: f64, color: Vector3<f64>, material: M) -> Sphere<M> {
         Self {
             center: center,
             radius: radius,
-            material: material,
             color: color,
-            fuzz: fuzz,
-            ir: ir,
+            material: material,
         }
     }
 }
 
-impl Hittable for Sphere {
+impl<M: Material> Hittable for Sphere<M> {
     
 fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc: Vector3<f64> = ray.origin - self.center;
@@ -54,7 +50,7 @@ fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
             // to get a unit vector.
             let outward_normal = (point - self.center) / self.radius;
 
-            let mut hit: HitRecord = HitRecord { point: point, normal: outward_normal, t: root, front_face: false, material: self.material.clone(), color: self.color, fuzz: self.fuzz, ir: self.ir };
+            let mut hit: HitRecord = HitRecord { point: point, normal: outward_normal, t: root, front_face: false, color: self.color, material: &self.material };
             hit.set_face_normal(ray, outward_normal);
 
             Some(hit)
