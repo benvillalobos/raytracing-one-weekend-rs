@@ -1,4 +1,5 @@
 // Following: https://raytracing.github.io/books/RayTracingInOneWeekend.html
+// Inspiration for rust-specific implementation taken from https://github.com/fralken/ray-tracing-in-one-weekend
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
@@ -33,15 +34,15 @@ fn main() {
     
     let mut objects = HittableList::new();
 
-    let ground_material = Metal::new(0.0, 1.0);
-    let center_material = Lambertian::new(0.0);
-    let left_material = Lambertian::new(0.0);
-    let right_material = Metal::new(0.0, 0.3);
+    let ground_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 }, 1.0);
+    let center_material = Lambertian::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 });
+    let left_material = Lambertian::new(Vector3 { x: 0.7, y: 0.3, z: 0.3 });
+    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3);
 
-    let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, ground_material);
-    let center_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, center_material);
-    let left_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, left_material);
-    let right_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, right_material);
+    let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, ground_material);
+    let center_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, center_material);
+    let left_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, left_material);
+    let right_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, right_material);
 
     objects.push(ground_sphere);
     objects.push(center_sphere);
@@ -92,9 +93,11 @@ fn ray_color(ray: &Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i3
     }
 
     if let Some(hit) = drawables.hit(ray, 0.001, INFINITY) {
-        let r = hit.material.scatter(&ray, &hit, rng);
-        let col = ray_color(&r, &drawables, rng, depth-1);
-        return Vector3 {x: col.x * hit.color.clone().x, y: col.y * hit.color.clone().y, z: col.z * hit.color.clone().z };
+        if let Some((r, atten)) = hit.material.scatter(&ray, &hit, rng) {
+            let col = ray_color(&r, &drawables, rng, depth-1);
+            return Vector3 {x: col.x * atten.x, y: col.y * atten.y, z: col.z * atten.clone().z };
+        }
+        return Vector3::<f64>::new(0.0, 0.0, 0.0);
     }
     get_background_color(&ray)
 }

@@ -59,16 +59,16 @@ fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f6
 }
 
 pub trait Material {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray;
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)>;
 }
 
 pub struct Metal {
-    albedo: f64,
+    albedo: Vector3<f64>,
     fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: f64, fuzz: f64) -> Self {
+    pub fn new(albedo: Vector3<f64>, fuzz: f64) -> Self {
         Metal {
             albedo: albedo,
             fuzz: fuzz,
@@ -77,18 +77,18 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)> {
         let reflected = reflect(ray.dir, hit.normal);
-        Ray::new(hit.point, reflected + self.fuzz*random_in_unit_sphere(rng))
+        Some((Ray::new(hit.point, reflected + self.fuzz*random_in_unit_sphere(rng)), self.albedo))
     }
 }
 
 pub struct Lambertian {
-    albedo: f64,
+    albedo: Vector3<f64>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: f64) -> Self {
+    pub fn new(albedo: Vector3<f64>) -> Self {
         Lambertian {
             albedo: albedo,
         }
@@ -96,14 +96,14 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)> {
         let mut scatter_direction = hit.normal + random_unit_vector(rng);
 
         if near_zero(scatter_direction) {
             scatter_direction = hit.normal;
         }
 
-        Ray::new(hit.point, scatter_direction)
+        Some((Ray::new(hit.point, scatter_direction), self.albedo))
     }
 }
 
@@ -120,8 +120,9 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
-            
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)> {
+        let attenuation = Vector3::<f64>::new(1.0, 1.0, 1.0);
+
         let refraction_ratio = if hit.front_face {1.0/self.ir} else {self.ir};
         let unit_direction = ray.dir.normalize();
 
@@ -138,7 +139,6 @@ impl Material for Dielectric {
             direction = refract(unit_direction, hit.normal, self.ir);
         }
 
-
-        Ray::new(hit.point, direction)
+        Some((Ray::new(hit.point, direction), attenuation))
     }
 }
