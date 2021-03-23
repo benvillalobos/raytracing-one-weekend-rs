@@ -59,7 +59,7 @@ fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f6
 }
 
 pub trait Material {
-    fn scatter(self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray;
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray;
 }
 
 pub struct Metal {
@@ -77,7 +77,7 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
         let reflected = reflect(ray.dir, hit.normal);
         Ray::new(hit.point, reflected + self.fuzz*random_in_unit_sphere(rng))
     }
@@ -98,7 +98,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
         let mut scatter_direction = hit.normal + random_unit_vector(rng);
 
         if near_zero(scatter_direction) {
@@ -122,7 +122,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Ray {
             
         let refraction_ratio = if hit.front_face {1.0/self.ir} else {self.ir};
         let unit_direction = ray.dir.normalize();
