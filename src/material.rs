@@ -85,14 +85,12 @@ impl Material for Metal {
 
 pub struct Lambertian {
     albedo: f64,
-    color: Vector3<f64>,
 }
 
 impl Lambertian {
-    pub fn new(albedo: f64, color: Vector3<f64>) -> Self {
+    pub fn new(albedo: f64) -> Self {
         Lambertian {
             albedo: albedo,
-            color: color,
         }
     }
 }

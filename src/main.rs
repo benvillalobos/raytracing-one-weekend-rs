@@ -33,10 +33,20 @@ fn main() {
     
     let mut objects = HittableList::new();
 
-    objects.push(Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
-    objects.push(Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
-    objects.push(Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
-    objects.push(Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, Lambertian::new(0.0, Vector3 { x: 0.7, y: 0.3, z: 0.3 })));
+    let ground_material = Metal::new(0.0, 1.0);
+    let center_material = Lambertian::new(0.0);
+    let left_material = Lambertian::new(0.0);
+    let right_material = Metal::new(0.0, 0.3);
+
+    let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, Vector3 { x: 0.8, y: 0.8, z: 0.0 }, ground_material);
+    let center_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.6, z: 0.2 }, center_material);
+    let left_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.7, y: 0.3, z: 0.3 }, left_material);
+    let right_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Vector3 { x: 0.8, y: 0.8, z: 0.8 }, right_material);
+
+    objects.push(ground_sphere);
+    objects.push(center_sphere);
+    objects.push(left_sphere);
+    objects.push(right_sphere);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -74,7 +84,7 @@ fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
     println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
 }
 
-fn ray_color(ray: &Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32) -> Vector3<f64>{
+fn ray_color(ray: &Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32) -> Vector3<f64> {
 
     // Don't let the stack overflow
     if depth <= 0 {
@@ -112,47 +122,4 @@ fn deg_to_rad(degrees: f64) -> f64 {
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     return if x < min { min } else if x > max { max } else { x }
-}
-
-fn random_vec3(rng: &mut ThreadRng, min: f64, max: f64) -> Vector3<f64> {
-    Vector3::<f64>::new(rng.gen_range(min, max), rng.gen_range(min, max), rng.gen_range(min, max))
-}
-
-fn random_unit_vector(rng: &mut ThreadRng) -> Vector3<f64> {
-    random_in_unit_sphere(rng).normalize()
-}
-
-fn random_in_hemisphere(normal: Vector3<f64>, rng: &mut ThreadRng) -> Vector3<f64> {
-    let in_unit_sphere = random_in_unit_sphere(rng);
-    // In the same hemisphere as the normal?
-    if in_unit_sphere.dot(normal) > 0.0 {
-        in_unit_sphere
-    } else {
-        -in_unit_sphere
-    }
-}
-
-fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vector3<f64> {
-    loop {
-        let p = random_vec3(rng, -1.0, 1.0);
-        if p.magnitude2() >= 1.0 {continue;}
-        return p;
-    }
-}
-
-fn near_zero(vec: Vector3<f64>) -> bool {
-    let s = 1e-8;
-    return vec.x < s && vec.y < s && vec.z < s;
-}
-
-fn reflect(v: Vector3<f64>, n: Vector3<f64>) -> Vector3<f64> {
-    v - 2.0 * v.dot(n)*n
-}
-
-fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f64> {
-    let cos_theta = clamp((-uv).dot(n), 1.0, INFINITY);
-
-    let r_out_perp = etai_over_etat * (uv + cos_theta*n);
-    let r_out_parallel = -((1.0 - r_out_perp.magnitude2()).abs().sqrt()) * n;
-    r_out_perp + r_out_parallel
 }
