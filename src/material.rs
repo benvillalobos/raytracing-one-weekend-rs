@@ -23,12 +23,12 @@ fn random_vec3(rng: &mut ThreadRng, min: f64, max: f64) -> Vector3<f64> {
     Vector3::<f64>::new(rng.gen_range(min, max), rng.gen_range(min, max), rng.gen_range(min, max))
 }
 
-fn random_unit_vector(rng: &mut ThreadRng) -> Vector3<f64> {
-    random_in_unit_sphere(rng).normalize()
+fn random_unit_vector() -> Vector3<f64> {
+    random_in_unit_sphere().normalize()
 }
 
-fn random_in_hemisphere(normal: Vector3<f64>, rng: &mut ThreadRng) -> Vector3<f64> {
-    let in_unit_sphere = random_in_unit_sphere(rng);
+fn random_in_hemisphere(normal: Vector3<f64>) -> Vector3<f64> {
+    let in_unit_sphere = random_in_unit_sphere();
     // In the same hemisphere as the normal?
     if in_unit_sphere.dot(normal) > 0.0 {
         in_unit_sphere
@@ -37,11 +37,14 @@ fn random_in_hemisphere(normal: Vector3<f64>, rng: &mut ThreadRng) -> Vector3<f6
     }
 }
 
-fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vector3<f64> {
+fn random_in_unit_sphere() -> Vector3<f64> {
+    let mut rng = rand::thread_rng();
+    let unit = Vector3::new(1.0, 1.0, 1.0);
     loop {
-        let p = random_vec3(rng, -1.0, 1.0);
-        if p.magnitude2() >= 1.0 {continue;}
-        return p;
+        let p = 2.0 * Vector3::new(rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()) - unit;
+        if p.magnitude2() < 1.0 {
+            return p
+        }
     }
 }
 
@@ -59,7 +62,7 @@ fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f6
 }
 
 pub trait Material {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)>;
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)>;
 }
 
 pub struct Metal {
@@ -71,15 +74,22 @@ impl Metal {
     pub fn new(albedo: Vector3<f64>, fuzz: f64) -> Self {
         Metal {
             albedo: albedo,
-            fuzz: fuzz,
+            fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
         }
     }
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)> {
-        let reflected = reflect(ray.dir, hit.normal);
-        Some((Ray::new(hit.point, reflected + self.fuzz*random_in_unit_sphere(rng)), self.albedo))
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
+        let mut reflected = reflect(ray.dir.normalize(), hit.normal);
+        if self.fuzz > 0.0 { reflected += self.fuzz * random_in_unit_sphere() }
+        if reflected.dot(hit.normal) > 0.0 {
+            let scattered = Ray::new(hit.point, reflected);
+            Some((scattered, self.albedo))
+        }
+        else {
+            None
+        }
     }
 }
 
@@ -96,8 +106,8 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)> {
-        let mut scatter_direction = hit.normal + random_unit_vector(rng);
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
+        let mut scatter_direction = hit.normal + random_unit_vector();
 
         if near_zero(scatter_direction) {
             scatter_direction = hit.normal;
@@ -120,7 +130,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord, rng: &mut ThreadRng) -> Option<(Ray, Vector3<f64>)> {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
         let attenuation = Vector3::<f64>::new(1.0, 1.0, 1.0);
 
         let refraction_ratio = if hit.front_face {1.0/self.ir} else {self.ir};

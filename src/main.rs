@@ -34,15 +34,15 @@ fn main() {
     
     let mut objects = HittableList::new();
 
-    let ground_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 }, 1.0);
-    let center_material = Lambertian::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 });
-    let left_material = Lambertian::new(Vector3 { x: 0.7, y: 0.3, z: 0.3 });
-    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3);
+    let ground_material = Lambertian::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 });
+    let center_material = Lambertian::new(Vector3 { x: 0.7, y: 0.3, z: 0.3 });
+    let left_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3);
+    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0);
 
     let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, ground_material);
-    let center_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, center_material);
-    let left_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, left_material);
-    let right_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, right_material);
+    let center_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, center_material);
+    let left_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, left_material);
+    let right_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, right_material);
 
     objects.push(ground_sphere);
     objects.push(center_sphere);
@@ -62,7 +62,7 @@ fn main() {
     
                 let r = camera.get_ray(u, v);
     
-                sampled_pixel += ray_color(&r, &objects, &mut rng, max_depth);
+                sampled_pixel += ray_color(&r, &objects, max_depth);
             }
 
             write_color(sampled_pixel, samples_per_pixel as f64);
@@ -85,7 +85,7 @@ fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
     println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
 }
 
-fn ray_color(ray: &Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i32) -> Vector3<f64> {
+fn ray_color(ray: &Ray, drawables: &HittableList, depth: i32) -> Vector3<f64> {
 
     // Don't let the stack overflow
     if depth <= 0 {
@@ -93,9 +93,8 @@ fn ray_color(ray: &Ray, drawables: &HittableList, rng: &mut ThreadRng, depth: i3
     }
 
     if let Some(hit) = drawables.hit(ray, 0.001, INFINITY) {
-        if let Some((r, atten)) = hit.material.scatter(&ray, &hit, rng) {
-            let col = ray_color(&r, &drawables, rng, depth-1);
-            return Vector3 {x: col.x * atten.x, y: col.y * atten.y, z: col.z * atten.clone().z };
+        if let Some((r, atten)) = hit.material.scatter(&ray, &hit) {
+            return atten.zip(ray_color(&r, &drawables, depth-1), |l, r| l * r);
         }
         return Vector3::<f64>::new(0.0, 0.0, 0.0);
     }
@@ -117,10 +116,6 @@ fn get_background_color(ray: &Ray) -> Vector3<f64> {
         // 0*blue (no blue produced at bottom of image)
         // In other words, linear interpolation.
         (1.0-t)*Vector3::new(1.0, 1.0, 1.0) + t*Vector3::new(0.5, 0.7, 1.0)
-}
-
-fn deg_to_rad(degrees: f64) -> f64 {
-    degrees * PI / 180.0
 }
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
