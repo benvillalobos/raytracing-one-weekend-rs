@@ -1,6 +1,7 @@
+
+use nalgebra::Vector3;
 use crate::material::Material;
 use crate::hittable::*;
-use cgmath::*;
 use crate::ray::Ray;
 
 pub struct Sphere<M: Material> {
@@ -24,9 +25,9 @@ impl<M: Material> Hittable for Sphere<M> {
 fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc: Vector3<f64> = ray.origin - self.center;
 
-        let a = ray.origin.distance2(ray.dir);
-        let half_b = oc.dot(ray.dir);
-        let c = oc.magnitude2() - self.radius*self.radius;
+        let a = ray.dir.dot(&ray.dir);
+        let half_b = oc.dot(&ray.dir);
+        let c = oc.magnitude_squared() - self.radius*self.radius;
         let discriminant = half_b*half_b - a*c;
         if discriminant < 0.0 {
             None

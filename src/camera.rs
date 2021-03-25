@@ -1,5 +1,5 @@
+use nalgebra::Vector3;
 use crate::ray::*;
-use cgmath::*;
 
 pub struct Camera {
     origin: Vector3<f64>,

@@ -3,10 +3,10 @@
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
+use nalgebra::Vector3;
 use raytracing::hittable::Hittable;
 use crate::rngs::ThreadRng;
 use raytracing::camera::Camera;
-use cgmath::*;
 use raytracing::ray::*;
 use raytracing::sphere::*;
 use raytracing::hittable_list::*;
@@ -34,15 +34,15 @@ fn main() {
     
     let mut objects = HittableList::new();
 
-    let ground_material = Lambertian::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 });
-    let center_material = Lambertian::new(Vector3 { x: 0.7, y: 0.3, z: 0.3 });
-    let left_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3);
-    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0);
+    let ground_material = Lambertian::new(Vector3::new(0.8, 0.8, 0.0));
+    let center_material = Lambertian::new(Vector3::new(0.7, 0.3, 0.3 ));
+    let left_material = Metal::new(Vector3::new(0.8, 0.8, 0.8 ), 0.3);
+    let right_material = Metal::new(Vector3::new(0.8, 0.6, 0.2 ), 1.0);
 
-    let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, ground_material);
-    let center_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, center_material);
-    let left_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, left_material);
-    let right_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, right_material);
+    let ground_sphere = Sphere::new(Vector3::new(0.0, -100.5, -1.0 ), 100.0, ground_material);
+    let center_sphere = Sphere::new(Vector3::new(0.0, 0.0, -1.0 ), 0.5, center_material);
+    let left_sphere = Sphere::new(Vector3::new(-1.0, 0.0, -1.0 ), 0.5, left_material);
+    let right_sphere = Sphere::new(Vector3::new(1.0, 0.0, -1.0 ), 0.5, right_material);
 
     objects.push(ground_sphere);
     objects.push(center_sphere);
@@ -94,7 +94,7 @@ fn ray_color(ray: &Ray, drawables: &HittableList, depth: i32) -> Vector3<f64> {
 
     if let Some(hit) = drawables.hit(ray, 0.001, INFINITY) {
         if let Some((r, atten)) = hit.material.scatter(&ray, &hit) {
-            return atten.zip(ray_color(&r, &drawables, depth-1), |l, r| l * r);
+            return atten.zip_map(&ray_color(&r, &drawables, depth-1), |l, r| l * r);
         }
         return Vector3::<f64>::new(0.0, 0.0, 0.0);
     }

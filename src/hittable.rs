@@ -1,5 +1,5 @@
+use nalgebra::Vector3;
 use crate::material::Material;
-use cgmath::*;
 use crate::ray::Ray;
 
 pub trait Hittable {
@@ -16,7 +16,7 @@ pub struct HitRecord<'a> {
 
 impl HitRecord<'_> {
     pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: Vector3<f64>) {
-        self.front_face = ray.dir.dot(outward_normal) < 0.0;
+        self.front_face = ray.dir.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face { outward_normal } else { -outward_normal } ;
     }
 }
