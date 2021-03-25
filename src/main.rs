@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 
 use raytracing::hittable::Hittable;
-use crate::rngs::ThreadRng;
 use raytracing::camera::Camera;
 use cgmath::*;
 use raytracing::ray::*;

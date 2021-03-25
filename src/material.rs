@@ -1,41 +1,31 @@
-use rand::rngs::ThreadRng;
 use cgmath::*;
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use rand::*;
 
-static PI: f64 = 3.1415926535897932385;
 static INFINITY: f64 = f64::MAX;
 
 fn reflect(v: Vector3<f64>, n: Vector3<f64>) -> Vector3<f64> {
     v - 2.0 * v.dot(n)*n
 }
 
-fn deg_to_rad(degrees: f64) -> f64 {
-    degrees * PI / 180.0
-}
-
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     return if x < min { min } else if x > max { max } else { x }
-}
-
-fn random_vec3(rng: &mut ThreadRng, min: f64, max: f64) -> Vector3<f64> {
-    Vector3::<f64>::new(rng.gen_range(min, max), rng.gen_range(min, max), rng.gen_range(min, max))
 }
 
 fn random_unit_vector() -> Vector3<f64> {
     random_in_unit_sphere().normalize()
 }
 
-fn random_in_hemisphere(normal: Vector3<f64>) -> Vector3<f64> {
-    let in_unit_sphere = random_in_unit_sphere();
-    // In the same hemisphere as the normal?
-    if in_unit_sphere.dot(normal) > 0.0 {
-        in_unit_sphere
-    } else {
-        -in_unit_sphere
-    }
-}
+// fn random_in_hemisphere(normal: Vector3<f64>) -> Vector3<f64> {
+//     let in_unit_sphere = random_in_unit_sphere();
+//     // In the same hemisphere as the normal?
+//     if in_unit_sphere.dot(normal) > 0.0 {
+//         in_unit_sphere
+//     } else {
+//         -in_unit_sphere
+//     }
+// }
 
 fn random_in_unit_sphere() -> Vector3<f64> {
     let mut rng = rand::thread_rng();
@@ -106,7 +96,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
+    fn scatter(&self, _: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
         let mut scatter_direction = hit.normal + random_unit_vector();
 
         if near_zero(scatter_direction) {
