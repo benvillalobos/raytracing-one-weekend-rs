@@ -34,9 +34,9 @@ fn main() {
     let mut objects = HittableList::new();
 
     let ground_material = Lambertian::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 });
-    let center_material = Lambertian::new(Vector3 { x: 0.7, y: 0.3, z: 0.3 });
-    let left_material = Metal::new(Vector3 { x: 0.8, y: 0.8, z: 0.8 }, 0.3);
-    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 1.0);
+    let center_material = Lambertian::new(Vector3 { x: 0.1, y: 0.2, z: 0.5 });
+    let left_material = Dielectric::new(1.5);
+    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 0.0);
 
     let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, ground_material);
     let center_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, center_material);

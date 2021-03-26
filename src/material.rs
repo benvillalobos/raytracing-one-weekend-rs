@@ -3,29 +3,17 @@ use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use rand::*;
 
-static INFINITY: f64 = f64::MAX;
+fn clamp(x: f64, min: f64, max: f64) -> f64 {
+    return if x < min { min } else if x > max { max } else { x }
+}
 
 fn reflect(v: Vector3<f64>, n: Vector3<f64>) -> Vector3<f64> {
     v - 2.0 * v.dot(n)*n
 }
 
-fn clamp(x: f64, min: f64, max: f64) -> f64 {
-    return if x < min { min } else if x > max { max } else { x }
-}
-
 fn random_unit_vector() -> Vector3<f64> {
     random_in_unit_sphere().normalize()
 }
-
-// fn random_in_hemisphere(normal: Vector3<f64>) -> Vector3<f64> {
-//     let in_unit_sphere = random_in_unit_sphere();
-//     // In the same hemisphere as the normal?
-//     if in_unit_sphere.dot(normal) > 0.0 {
-//         in_unit_sphere
-//     } else {
-//         -in_unit_sphere
-//     }
-// }
 
 fn random_in_unit_sphere() -> Vector3<f64> {
     let mut rng = rand::thread_rng();
@@ -44,7 +32,7 @@ fn near_zero(vec: Vector3<f64>) -> bool {
 }
 
 fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f64> {
-    let cos_theta = clamp((-uv).dot(n), 1.0, INFINITY);
+    let cos_theta = if (-uv).dot(n) > 1.0 { 1.0 } else { (-uv).dot(n) };
 
     let r_out_perp = etai_over_etat * (uv + cos_theta*n);
     let r_out_parallel = -((1.0 - r_out_perp.magnitude2()).abs().sqrt()) * n;
@@ -126,7 +114,7 @@ impl Material for Dielectric {
         let refraction_ratio = if hit.front_face {1.0/self.ir} else {self.ir};
         let unit_direction = ray.dir.normalize();
 
-        let cos_theta = clamp((-unit_direction).dot(hit.normal), 1.0, INFINITY);
+        let cos_theta = clamp((-unit_direction).dot(hit.normal), 1.0, f64::MAX);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
@@ -136,7 +124,7 @@ impl Material for Dielectric {
             direction = reflect(unit_direction, hit.normal);
         }
         else {
-            direction = refract(unit_direction, hit.normal, self.ir);
+            direction = refract(unit_direction, hit.normal, refraction_ratio);
         }
 
         Some((Ray::new(hit.point, direction), attenuation))
