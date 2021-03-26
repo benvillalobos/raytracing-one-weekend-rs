@@ -120,7 +120,7 @@ impl Material for Dielectric {
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
         let direction: Vector3<f64>;
 
-        if cannot_refract {
+        if cannot_refract || reflectance(cos_theta, refraction_ratio) > random::<f64>() {
             direction = reflect(unit_direction, hit.normal);
         }
         else {
@@ -129,4 +129,11 @@ impl Material for Dielectric {
 
         Some((Ray::new(hit.point, direction), attenuation))
     }
+}
+
+fn reflectance(cosine: f64, refraction: f64) -> f64 {
+    // Schlick's approximation
+    let mut r0 = (1.0 - refraction) / (1.0 + refraction);
+    r0 = r0*r0;
+    r0 + (1.0 - r0)*(1.0 - cosine).powf(5.0)
 }
