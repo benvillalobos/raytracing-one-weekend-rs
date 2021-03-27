@@ -27,26 +27,17 @@ fn main() {
     let img_height = (img_width as f64/aspect_ratio) as i32;
 
     // Constants
-    let camera = Camera::new();
+    let camera = Camera::new(90.0, aspect_ratio);
     let samples_per_pixel = 100;
     let max_depth = 50;
     
+    let radius = (crate::PI/4.0).cos();
+
+    // World
     let mut objects = HittableList::new();
 
-    let ground_material = Lambertian::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 });
-    let center_material = Lambertian::new(Vector3 { x: 0.1, y: 0.2, z: 0.5 });
-    let left_material = Dielectric::new(1.5);
-    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 0.0);
-
-    let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, ground_material);
-    let center_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, center_material);
-    let left_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, left_material);
-    let right_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, right_material);
-
-    objects.push(ground_sphere);
-    objects.push(center_sphere);
-    objects.push(left_sphere);
-    objects.push(right_sphere);
+    //generate_v1_world(&mut objects);
+    generate_v2_world(&mut objects, radius);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -119,4 +110,35 @@ fn get_background_color(ray: &Ray) -> Vector3<f64> {
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
     return if x < min { min } else if x > max { max } else { x }
+}
+
+fn generate_v1_world(objects: &mut HittableList) {
+    let ground_material = Lambertian::new(Vector3 { x: 0.8, y: 0.8, z: 0.0 });
+    let center_material = Lambertian::new(Vector3 { x: 0.1, y: 0.2, z: 0.5 });
+    let left_material = Dielectric::new(1.5);
+    let left_inner_material = Dielectric::new(1.5);
+    let right_material = Metal::new(Vector3 { x: 0.8, y: 0.6, z: 0.2 }, 0.0);
+
+    let ground_sphere = Sphere::new(Vector3 { x: 0.0, y: -100.5, z: -1.0 }, 100.0, ground_material);
+    let center_sphere = Sphere::new(Vector3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, center_material);
+    let left_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, left_material);
+    let left_inner_sphere = Sphere::new(Vector3 { x: -1.0, y: 0.0, z: -1.0 }, -0.4, left_inner_material);
+    let right_sphere = Sphere::new(Vector3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, right_material);
+
+    objects.push(ground_sphere);
+    objects.push(center_sphere);
+    objects.push(left_sphere);
+    objects.push(left_inner_sphere);
+    objects.push(right_sphere);
+}
+
+fn generate_v2_world(objects: &mut HittableList, radius: f64) {
+    let right_material = Lambertian::new(Vector3 { x: 0.0, y: 0.0, z: 1.0 });
+    let right_sphere = Sphere::new(Vector3 { x: -radius, y: 0.0, z: -1.0 }, radius, right_material);
+
+    let left_material = Lambertian::new(Vector3 { x: 1.0, y: 0.0, z: 0.0 });
+    let left_sphere = Sphere::new(Vector3 { x: radius, y: 0.0, z: -1.0 }, radius, left_material);
+
+    objects.push(left_sphere);
+    objects.push(right_sphere);
 }

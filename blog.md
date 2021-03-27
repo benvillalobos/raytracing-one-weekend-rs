@@ -13,4 +13,8 @@ Reducing the sample count from 100 to 50 and the scanline count from 50 to 25 re
 
 Something is off. Nevermind it's good but it took forever!
 
-### 3/5 Shadow Acne
+
+### 3/26
+Have a clean commit history
+Label commits by chapter (consider release labels)
+Save examples or final renders as you go
