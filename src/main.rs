@@ -3,6 +3,8 @@
 //#![allow(unused_variables)]
 #![allow(dead_code)]
 
+use raytracing::random_double;
+use raytracing::random_color;
 use raytracing::hittable::Hittable;
 use raytracing::camera::Camera;
 use cgmath::*;
@@ -18,19 +20,27 @@ static INFINITY: f64 = f64::MAX;
 
 // cargo run > img.ppm
 fn main() {
-    // Tools
-    let mut rng = thread_rng();
-
     // Image
-    let aspect_ratio = 16.0 / 9.0;
-    let img_width = 400;
+    let aspect_ratio = 3.0 / 2.0;
+    let img_width = 1200;
     let img_height = (img_width as f64/aspect_ratio) as i32;
 
-    let look_from = Vector3 { x: 3.0, y: 3.0, z: 2.0 };
-    let look_at = Vector3 { x: 0.0, y: 0.0, z: -1.0 };
+    // Number of "nearby" colors to get an average of for accurate color
+    // Antialiasing
+    let samples_per_pixel = 500;
+    // Number of rays to shoot per reflection.
+    let max_depth = 50;
+
+    // Where our camera is located
+    let look_from = Vector3 { x: 13.0, y: 2.0, z: 3.0 };
+    // What our camera is looking at
+    let look_at = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
+    // Our camera's "up"
     let vup = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
-    let dist_to_focus = (look_from-look_at).magnitude();
-    let aperture = 2.0;
+    // Distance that is in focus
+    let dist_to_focus = 10.0;
+    // Size of the "disk" we shoot rays out from for blurring
+    let aperture = 0.1;
 
     // Constants
     let camera = Camera::new(look_from, 
@@ -41,37 +51,43 @@ fn main() {
                              aperture,
                              dist_to_focus);
 
-    let samples_per_pixel = 100;
-    let max_depth = 50;
-    
-    let radius = (crate::PI/4.0).cos();
-
     // World
     let mut objects = HittableList::new();
 
-    generate_v1_world(&mut objects);
-    //generate_v2_world(&mut objects, radius);
+    //generate_v1_world(&mut objects);
+    //generate_v2_world(&mut objects);
+    random_scene(&mut objects);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
-    for y in (0..img_height).rev() {
-    eprintln!("Scanlines remaining: {}", y);
-        for x in 0..img_width {
-            let mut sampled_pixel = Vector3::<f64>::new(0.0, 0.0, 0.0);
-            // Antialiasing: The edges of a pixel should be the "average" of colors around it.
-            for _ in 0..samples_per_pixel {
-                let u: f64 = (x  as f64 + rng.gen_range(0.0, 1.0))/(img_width-1) as f64;
-                let v: f64 = (y  as f64 + rng.gen_range(0.0, 1.0))/(img_height-1) as f64;
-    
-                let r = camera.get_ray(u, v);
-    
-                sampled_pixel += ray_color(&r, &objects, max_depth);
-            }
-
-            write_color(sampled_pixel, samples_per_pixel as f64);
-        }
-    }
+    render(img_height, img_width, samples_per_pixel, camera, objects, max_depth);
     eprintln!("Done");
+}
+
+fn render(  img_height: i32, 
+            img_width: i32, 
+            samples_per_pixel: i32, 
+            camera: Camera, 
+            objects: HittableList, 
+            max_depth: i32) {
+
+    for y in (0..img_height).rev() {
+        eprintln!("Scanlines remaining: {}", y);
+            for x in 0..img_width {
+                let mut sampled_pixel = Vector3::<f64>::new(0.0, 0.0, 0.0);
+                // Antialiasing: The edges of a pixel should be the "average" of colors around it.
+                for _ in 0..samples_per_pixel {
+                    let u: f64 = (x  as f64 + random_double())/(img_width-1) as f64;
+                    let v: f64 = (y  as f64 + random_double())/(img_height-1) as f64;
+        
+                    let r = camera.get_ray(u, v);
+        
+                    sampled_pixel += ray_color(&r, &objects, max_depth);
+                }
+    
+                write_color(sampled_pixel, samples_per_pixel as f64);
+            }
+        }
 }
 
 fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
@@ -145,7 +161,8 @@ fn generate_v1_world(objects: &mut HittableList) {
     objects.push(right_sphere);
 }
 
-fn generate_v2_world(objects: &mut HittableList, radius: f64) {
+fn generate_v2_world(objects: &mut HittableList) {
+    let radius = (crate::PI/4.0).cos();
     let right_material = Lambertian::new(Vector3 { x: 0.0, y: 0.0, z: 1.0 });
     let right_sphere = Sphere::new(Vector3 { x: -radius, y: 0.0, z: -1.0 }, radius, right_material);
 
@@ -154,4 +171,52 @@ fn generate_v2_world(objects: &mut HittableList, radius: f64) {
 
     objects.push(left_sphere);
     objects.push(right_sphere);
+}
+
+fn random_scene(objects: &mut HittableList) {
+    let mut rng = rand::thread_rng();
+
+    let ground_material = Lambertian::new(Vector3 { x: 0.5, y: 0.5, z: 0.5 });
+    let world = Sphere::new(Vector3 { x: 0.0, y: -1000.0, z: 0.0 }, 1000.0, ground_material);
+    objects.push(world);
+
+    for a in -11..12 {
+        for b in -11..12 {
+            let material_to_use = rng.gen_range(0.0, 1.0);
+            let center = Vector3 { x: a as f64 + 0.9*rng.gen_range(0.0, 1.0), y: 0.2, z: b as f64 + 0.9*rng.gen_range(0.0, 1.0) };
+
+            if (center - Vector3 { x: 4.0, y: 0.2, z: 0.0 }).magnitude() > 0.9 {
+                if material_to_use < 0.8 { // Diffuse
+                    let albedo = random_color() * random_double();
+                    let sphere_material = Lambertian::new(albedo);
+                    let sphere = Sphere::new(center, 0.2, sphere_material);
+                    objects.push(sphere);
+                }
+                else if material_to_use < 0.95 {
+                    let albedo = random_color();
+                    let fuzz = random_double();
+                    let sphere_material = Metal::new(albedo, fuzz);
+                    let sphere = Sphere::new(center, 0.2, sphere_material);
+                    objects.push(sphere);
+                }
+                else {
+                    let sphere_material = Dielectric::new(1.5);
+                    let sphere = Sphere::new(center, 0.2, sphere_material);
+                    objects.push(sphere);
+                }
+            }
+        }
+    }
+
+    let material1 = Dielectric::new(1.5);
+    let material2 = Lambertian::new(Vector3{x: 0.4, y: 0.2, z: 0.1});
+    let material3 = Metal::new(Vector3{x: 0.7, y: 0.6, z: 0.5}, 0.0);
+
+    let sphere1 = Sphere::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 0.2, material1);
+    let sphere2 = Sphere::new(Vector3{x: -4.0, y: 1.0, z: 0.0}, 0.2, material2);
+    let sphere3 = Sphere::new(Vector3{x: 4.0, y: 1.0, z: 0.0}, 0.2, material3);
+
+    objects.push(sphere1);
+    objects.push(sphere2);
+    objects.push(sphere3);
 }

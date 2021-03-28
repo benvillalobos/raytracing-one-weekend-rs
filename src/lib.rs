@@ -26,6 +26,16 @@ pub fn random_in_unit_sphere() -> Vector3<f64> {
     }
 }
 
+pub fn random_double() -> f64 {
+    let mut rng = rand::thread_rng();
+    rng.gen_range(0.0, 1.0)
+}
+
+pub fn random_color() -> Vector3<f64> {
+    let mut rng = rand::thread_rng();
+    Vector3{ x: rng.gen_range(0.0, 1.0) * 255.0, y: rng.gen_range(0.0, 1.0)*255.0, z: rng.gen_range(0.0, 1.0)*255.0 }
+}
+
 fn random_in_unit_disk() -> Vector3<f64> {
     let mut rng = rand::thread_rng();
     loop {
