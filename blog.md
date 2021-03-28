@@ -18,3 +18,7 @@ Something is off. Nevermind it's good but it took forever!
 Have a clean commit history
 Label commits by chapter (consider release labels)
 Save examples or final renders as you go
+cgmath lib is faster than nalgebra
+
+### 3/28 Camera stuffs
+FOV defines zoom? make a gif "zooming out".

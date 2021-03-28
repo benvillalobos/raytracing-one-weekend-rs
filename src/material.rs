@@ -11,21 +11,6 @@ fn reflect(v: Vector3<f64>, n: Vector3<f64>) -> Vector3<f64> {
     v - 2.0 * v.dot(n)*n
 }
 
-fn random_unit_vector() -> Vector3<f64> {
-    random_in_unit_sphere().normalize()
-}
-
-fn random_in_unit_sphere() -> Vector3<f64> {
-    let mut rng = rand::thread_rng();
-    let unit = Vector3::new(1.0, 1.0, 1.0);
-    loop {
-        let p = 2.0 * Vector3::new(rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()) - unit;
-        if p.magnitude2() < 1.0 {
-            return p
-        }
-    }
-}
-
 fn near_zero(vec: Vector3<f64>) -> bool {
     let s = 1e-8;
     return vec.x < s && vec.y < s && vec.z < s;
@@ -60,7 +45,7 @@ impl Metal {
 impl Material for Metal {
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
         let mut reflected = reflect(ray.dir.normalize(), hit.normal);
-        if self.fuzz > 0.0 { reflected += self.fuzz * random_in_unit_sphere() }
+        if self.fuzz > 0.0 { reflected += self.fuzz * crate::random_in_unit_sphere() }
         if reflected.dot(hit.normal) > 0.0 {
             let scattered = Ray::new(hit.point, reflected);
             Some((scattered, self.albedo))
@@ -85,7 +70,7 @@ impl Lambertian {
 
 impl Material for Lambertian {
     fn scatter(&self, _: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
-        let mut scatter_direction = hit.normal + random_unit_vector();
+        let mut scatter_direction = hit.normal + crate::random_unit_vector();
 
         if near_zero(scatter_direction) {
             scatter_direction = hit.normal;

@@ -26,8 +26,21 @@ fn main() {
     let img_width = 400;
     let img_height = (img_width as f64/aspect_ratio) as i32;
 
+    let look_from = Vector3 { x: 3.0, y: 3.0, z: 2.0 };
+    let look_at = Vector3 { x: 0.0, y: 0.0, z: -1.0 };
+    let vup = Vector3 { x: 0.0, y: 1.0, z: 0.0 };
+    let dist_to_focus = (look_from-look_at).magnitude();
+    let aperture = 2.0;
+
     // Constants
-    let camera = Camera::new(90.0, aspect_ratio);
+    let camera = Camera::new(look_from, 
+                             look_at, 
+                             vup, 
+                             20.0, 
+                             aspect_ratio,
+                             aperture,
+                             dist_to_focus);
+
     let samples_per_pixel = 100;
     let max_depth = 50;
     
@@ -36,8 +49,8 @@ fn main() {
     // World
     let mut objects = HittableList::new();
 
-    //generate_v1_world(&mut objects);
-    generate_v2_world(&mut objects, radius);
+    generate_v1_world(&mut objects);
+    //generate_v2_world(&mut objects, radius);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
