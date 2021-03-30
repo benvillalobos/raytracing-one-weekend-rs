@@ -23,12 +23,12 @@ static INFINITY: f64 = f64::MAX;
 fn main() {
     // Image
     let aspect_ratio = 3.0 / 2.0;
-    let img_width = 300;
+    let img_width = 600;
     let img_height = (img_width as f64/aspect_ratio) as i32;
 
     // Number of "nearby" colors to get an average of for accurate color
     // Antialiasing
-    let samples_per_pixel = 20;
+    let samples_per_pixel = 500;
     // Number of rays to shoot per reflection.
     let max_depth = 50;
 
@@ -55,16 +55,26 @@ fn main() {
     // World
     let mut objects = HittableList::new();
 
-    generate_v1_world(&mut objects);
-    //generate_v2_world(&mut objects);
-    //random_scene(&mut objects);
+    let mut timer_start = std::time::Instant::now();
+
+    //generate_v1_world(&mut objects); // 10 seconds down to ~2 when parallel.
+    //generate_v2_world(&mut objects);// 6 seconds down to ~2 when parallel
+    random_scene(&mut objects);
+
+    let mut time_taken = std::time::Instant::now().duration_since(timer_start);
+
+    eprintln!("World Generation Time: {:?}m{:?}s", time_taken.as_secs()/60, time_taken.as_secs()%60);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
+    timer_start = std::time::Instant::now();
+
     //render(img_height, img_width, samples_per_pixel, camera, objects, max_depth);
     render_par(img_height, img_width, samples_per_pixel, &camera, &objects, max_depth);
-    
-    eprintln!("Done");
+
+    time_taken = std::time::Instant::now().duration_since(timer_start);
+
+    eprintln!("Done! Render Time: {:?}m{:?}s", time_taken.as_secs()/60, time_taken.as_secs()%60);
 }
 
 fn render(  img_height: i32, 
@@ -216,12 +226,14 @@ fn random_scene(objects: &mut HittableList) {
 
             if (center - origin).magnitude() > 0.9 {
                 if material_to_use < 0.8 { // Diffuse
+                    eprintln!("Diffuse was chosen");
                     let albedo = random_color();
                     let sphere_material = Lambertian::new(albedo);
                     let sphere = Sphere::new(center, 0.2, sphere_material);
                     objects.push(sphere);
                 }
                 else if material_to_use < 0.95 {
+                    eprintln!("Metal was chosen");
                     let albedo = random_color();
                     let fuzz = random_double();
                     let sphere_material = Metal::new(albedo, fuzz);
@@ -229,6 +241,7 @@ fn random_scene(objects: &mut HittableList) {
                     objects.push(sphere);
                 }
                 else {
+                    eprintln!("Dielectric was chosen");
                     let sphere_material = Dielectric::new(1.5);
                     let sphere = Sphere::new(center, 0.2, sphere_material);
                     objects.push(sphere);
@@ -241,7 +254,7 @@ fn random_scene(objects: &mut HittableList) {
     let material2 = Lambertian::new(Vector3{x: 0.4, y: 0.2, z: 0.1});
     let material3 = Metal::new(Vector3{x: 0.7, y: 0.6, z: 0.5}, 0.0);
 
-    let sphere1 = Sphere::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 1.9, material1);
+    let sphere1 = Sphere::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 1.0, material1);
     let sphere2 = Sphere::new(Vector3{x: -4.0, y: 1.0, z: 0.0}, 1.0, material2);
     let sphere3 = Sphere::new(Vector3{x: 4.0, y: 1.0, z: 0.0}, 1.0, material3);
 
