@@ -55,13 +55,15 @@ fn main() {
     // World
     let mut objects = HittableList::new();
 
-    //generate_v1_world(&mut objects);
-    generate_v2_world(&mut objects);
+    generate_v1_world(&mut objects);
+    //generate_v2_world(&mut objects);
     //random_scene(&mut objects);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
+    //render(img_height, img_width, samples_per_pixel, camera, objects, max_depth);
     render_par(img_height, img_width, samples_per_pixel, &camera, &objects, max_depth);
+    
     eprintln!("Done");
 }
 
