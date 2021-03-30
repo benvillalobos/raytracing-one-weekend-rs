@@ -13,6 +13,7 @@ use raytracing::sphere::*;
 use raytracing::hittable_list::*;
 use raytracing::material::*;
 use rand::*;
+use rayon::prelude::*;
 
 static PI: f64 = 3.1415926535897932385;
 static INFINITY: f64 = f64::MAX;
@@ -22,12 +23,12 @@ static INFINITY: f64 = f64::MAX;
 fn main() {
     // Image
     let aspect_ratio = 3.0 / 2.0;
-    let img_width = 1200;
+    let img_width = 300;
     let img_height = (img_width as f64/aspect_ratio) as i32;
 
     // Number of "nearby" colors to get an average of for accurate color
     // Antialiasing
-    let samples_per_pixel = 500;
+    let samples_per_pixel = 20;
     // Number of rays to shoot per reflection.
     let max_depth = 50;
 
@@ -55,8 +56,8 @@ fn main() {
     let mut objects = HittableList::new();
 
     //generate_v1_world(&mut objects);
-    //generate_v2_world(&mut objects);
-    random_scene(&mut objects);
+    generate_v2_world(&mut objects);
+    //random_scene(&mut objects);
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
@@ -90,7 +91,35 @@ fn render(  img_height: i32,
         }
 }
 
+fn render_par(  img_height: i32, 
+    img_width: i32, 
+    samples_per_pixel: i32, 
+    camera: &Camera, 
+    objects: &HittableList, 
+    max_depth: i32) {
+        let mut rng = thread_rng();
+
+        let image: Vec<Vector3<f64>> = (0..img_height).into_par_iter().rev().flat_map(|y| {
+            (0..img_width).into_par_iter().map(move |x| {
+                let sampled_pixel = (0..samples_per_pixel).map(move |_| {
+                    let u: f64 = (x  as f64 + random_double())/(img_width-1) as f64;
+                    let v: f64 = (y  as f64 + random_double())/(img_height-1) as f64;
+        
+                    let r = camera.get_ray(u, v);
+                    ray_color(&r, &objects, max_depth)
+                }).sum();
+                sampled_pixel
+            })
+        }).collect();
+}
+
 fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
+    let (r, g, b) = get_color(color, samples_per_pixel);
+
+    println!("{} {} {}", r, g, b);
+}
+
+fn get_color(color: Vector3<f64>, samples_per_pixel: f64) -> (i32, i32, i32) {
     let mut r = color.x;
     let mut g = color.y;
     let mut b = color.z;
@@ -101,7 +130,7 @@ fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
     g = (g * scale).sqrt();
     b = (b * scale).sqrt();
 
-    println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
+    ((256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32)
 }
 
 fn ray_color(ray: &Ray, drawables: &HittableList, depth: i32) -> Vector3<f64> {
@@ -175,7 +204,7 @@ fn generate_v2_world(objects: &mut HittableList) {
 
 fn random_scene(objects: &mut HittableList) {
     let mut rng = rand::thread_rng();
-
+    let origin = Vector3 { x: 4.0, y: 0.2, z: 0.0 };
     let ground_material = Lambertian::new(Vector3 { x: 0.5, y: 0.5, z: 0.5 });
     let world = Sphere::new(Vector3 { x: 0.0, y: -1000.0, z: 0.0 }, 1000.0, ground_material);
     objects.push(world);
@@ -185,9 +214,9 @@ fn random_scene(objects: &mut HittableList) {
             let material_to_use = rng.gen_range(0.0, 1.0);
             let center = Vector3 { x: a as f64 + 0.9*rng.gen_range(0.0, 1.0), y: 0.2, z: b as f64 + 0.9*rng.gen_range(0.0, 1.0) };
 
-            if (center - Vector3 { x: 4.0, y: 0.2, z: 0.0 }).magnitude() > 0.9 {
+            if (center - origin).magnitude() > 0.9 {
                 if material_to_use < 0.8 { // Diffuse
-                    let albedo = random_color() * random_double();
+                    let albedo = random_color();
                     let sphere_material = Lambertian::new(albedo);
                     let sphere = Sphere::new(center, 0.2, sphere_material);
                     objects.push(sphere);
@@ -212,9 +241,9 @@ fn random_scene(objects: &mut HittableList) {
     let material2 = Lambertian::new(Vector3{x: 0.4, y: 0.2, z: 0.1});
     let material3 = Metal::new(Vector3{x: 0.7, y: 0.6, z: 0.5}, 0.0);
 
-    let sphere1 = Sphere::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 0.2, material1);
-    let sphere2 = Sphere::new(Vector3{x: -4.0, y: 1.0, z: 0.0}, 0.2, material2);
-    let sphere3 = Sphere::new(Vector3{x: 4.0, y: 1.0, z: 0.0}, 0.2, material3);
+    let sphere1 = Sphere::new(Vector3{x: 0.0, y: 1.0, z: 0.0}, 1.9, material1);
+    let sphere2 = Sphere::new(Vector3{x: -4.0, y: 1.0, z: 0.0}, 1.0, material2);
+    let sphere3 = Sphere::new(Vector3{x: 4.0, y: 1.0, z: 0.0}, 1.0, material3);
 
     objects.push(sphere1);
     objects.push(sphere2);

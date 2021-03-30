@@ -22,3 +22,5 @@ cgmath lib is faster than nalgebra
 
 ### 3/28 Camera stuffs
 FOV defines zoom? make a gif "zooming out".
+How does generating rays frmo random points at the look_from create blur?
+wouldn't it make more sense to pick a random point at the look_at?

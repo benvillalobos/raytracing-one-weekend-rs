@@ -24,7 +24,7 @@ fn refract(uv: Vector3<f64>, n: Vector3<f64>, etai_over_etat: f64) -> Vector3<f6
     r_out_perp + r_out_parallel
 }
 
-pub trait Material {
+pub trait Material: Send + Sync{
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vector3<f64>)>;
 }
 
