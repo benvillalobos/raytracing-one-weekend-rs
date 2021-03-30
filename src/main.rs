@@ -61,7 +61,7 @@ fn main() {
 
     println!("P3\n{} {}\n255", img_width, img_height);
 
-    render(img_height, img_width, samples_per_pixel, camera, objects, max_depth);
+    render_par(img_height, img_width, samples_per_pixel, &camera, &objects, max_depth);
     eprintln!("Done");
 }
 
@@ -97,7 +97,6 @@ fn render_par(  img_height: i32,
     camera: &Camera, 
     objects: &HittableList, 
     max_depth: i32) {
-        let mut rng = thread_rng();
 
         let image: Vec<Vector3<f64>> = (0..img_height).into_par_iter().rev().flat_map(|y| {
             (0..img_width).into_par_iter().map(move |x| {
@@ -111,15 +110,14 @@ fn render_par(  img_height: i32,
                 sampled_pixel
             })
         }).collect();
+
+        // We've collected all colors into a list of vector3, print them.
+        for col in image {
+            write_color(col, samples_per_pixel as f64);
+        }
 }
 
 fn write_color(color: Vector3<f64>, samples_per_pixel: f64) {
-    let (r, g, b) = get_color(color, samples_per_pixel);
-
-    println!("{} {} {}", r, g, b);
-}
-
-fn get_color(color: Vector3<f64>, samples_per_pixel: f64) -> (i32, i32, i32) {
     let mut r = color.x;
     let mut g = color.y;
     let mut b = color.z;
@@ -130,7 +128,7 @@ fn get_color(color: Vector3<f64>, samples_per_pixel: f64) -> (i32, i32, i32) {
     g = (g * scale).sqrt();
     b = (b * scale).sqrt();
 
-    ((256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32)
+    println!("{} {} {}", (256.0 * clamp(r, 0.0, 0.999)) as i32, (256.0 * clamp(g, 0.0, 0.999)) as i32, (256.0 * clamp(b, 0.0, 0.999)) as i32);
 }
 
 fn ray_color(ray: &Ray, drawables: &HittableList, depth: i32) -> Vector3<f64> {
